@@ -6,4 +6,6 @@ RUN corepack enable && corepack prepare pnpm@11.2.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 ENV CI=true
 RUN pnpm install
+
+COPY . .
 CMD ["pnpm", "dev"]
