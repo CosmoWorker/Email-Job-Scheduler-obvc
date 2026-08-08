@@ -1,24 +1,26 @@
 import { Router } from "express"
-import { db, emailQueue } from "../index.js"
 import { emailJobTable, senderTable } from "../db/schema.js"
 import { eq } from "drizzle-orm"
+import { db } from "../db/db.js"
+import { emailQueue } from "../lib/queue.js"
 
 const router: Router = Router()
 
 router.post("/schedule", async (req, res) => {
     const { senderName, senderEmail, recipient, subject, body, scheduledAt } = req.body
     const senderEmailExists = await db.select().from(senderTable).where(eq(senderTable.email, senderEmail)).limit(1)
+    let senderId: number
     if (senderEmailExists.length > 0) {
-        res.status(400).json({ error: "Sender email already exists" })
-        return
+        senderId = senderEmailExists[0]!.id
     }
+    else {
+        const result = await db.insert(senderTable).values({
+            name: senderName,
+            email: senderEmail,
+        }).returning({ id: senderTable.id })
 
-    const result = await db.insert(senderTable).values({
-        name: senderName,
-        email: senderEmail,
-    }).returning({ id: senderTable.id })
-
-    const senderId = result[0]!.id
+        senderId = result[0]!.id
+    }
     const newJob = await db.insert(emailJobTable).values({
         senderId,
         recipient,
@@ -28,7 +30,7 @@ router.post("/schedule", async (req, res) => {
         status: "scheduled",
     }).returning({ id: emailJobTable.id })
 
-    await emailQueue.add("send-email", { emailJobId: newJob[0]!.id }, { delay: scheduledAt - Date.now() })
+    await emailQueue.add("send-email", { emailJobId: newJob[0]!.id }, { delay: new Date(scheduledAt).getTime() - Date.now() })
     res.status(200).json({ message: "Job scheduled successfully" })
 })
 
