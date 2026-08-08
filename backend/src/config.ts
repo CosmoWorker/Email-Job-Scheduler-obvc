@@ -10,7 +10,7 @@ export const config = {
     serverPort: parseInt(getEnv("SERVER_PORT"), 10),
     databaseUrl: getEnv("DATABASE_URL"),
     redisUrl: getEnv("REDIS_URL"),
-    corsOriginUrl: getEnv("CLIENT_CORS_ORIGIN_URL"),
+    clientCorsOriginUrl: getEnv("CLIENT_CORS_ORIGIN_URL"),
     ethereal: {
         username: getEnv("ETHEREAL_USERNAME"),
         password: getEnv("ETHEREAL_PASSWORD"),
