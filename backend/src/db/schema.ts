@@ -12,10 +12,11 @@ export const statusEnum = pgEnum("status", ["pending", "scheduled", "sent", "fai
 
 export const emailJobTable = pgTable("email_job", {
     id: serial("id").primaryKey(),
-    sender_id: integer("sender_id").notNull().references(() => senderTable.id),
+    senderId: integer("sender_id").notNull().references(() => senderTable.id),
     recipient: text("email").notNull(),
     subject: text("subject").notNull(),
     body: text("body").notNull(),
     status: statusEnum("status").notNull().default("pending"),
     scheduledAt: timestamp("scheduled_at").notNull(),
+    sentAt: timestamp("sentAt")
 });
