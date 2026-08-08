@@ -1,20 +1,21 @@
 import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from './assets/vite.svg'
-// import heroImg from './assets/hero.png'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { ComposePage } from '@/components/compose/ComposePage'
+import { LoginPage } from '@/pages/LoginPage'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+type View = 'login' | 'dashboard' | 'compose'
 
-  return (
-    <>
-      <div className='min-h-screen bg-slate-900 flex flex-col items-center justify-center'>
-        <h1 className='text-4xl font-bold text-white'>OBVC Email Scheduler</h1>
-        <p className='text-white'>Schedule your emails with ease</p>
-      </div>
-    </>
-  )
+export default function App() {
+  const [view, setView] = useState<View>('dashboard')
+
+  if (view === 'login') {
+    return <LoginPage onLogin={() => setView('dashboard')} />
+  }
+
+  if (view === 'compose') {
+    return <ComposePage onBack={() => setView('dashboard')} />
+  }
+
+  return <DashboardPage onCompose={() => setView('compose')} />
 }
-
-export default App
