@@ -5,6 +5,7 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "PING"]
       interval: 5s
+      retries: 5
       timeout: 5s
   db:
     image: postgres:18-alpine
@@ -13,14 +14,15 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-obvc_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-my_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-obvc_db}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - local_postgres_data:/var/lib/postgressql/data
+      - local_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 5s
+      retries: 5
       timeout: 5s
 
   backend:
@@ -40,33 +42,35 @@ services:
       - ./backend:/app
       - /app/node_modules
     healthcheck:
-      test: ["CMD", "curl", "-f", "localhost://3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 5s
       timeout : 5s
   
-  # worker:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   env_file: .env
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #     backend:
-  #       condition: service_healthy
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["pnpm", "exec", "tsx", "src/worker.ts"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5173:5173"
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules  
-
-    
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+ 
   volumes:
     local_postgres_data:
