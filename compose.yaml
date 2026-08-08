@@ -3,7 +3,7 @@ services:
     image: redis:alpine
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "PING"]
+      test: [ "CMD", "redis-cli", "PING" ]
       interval: 5s
       retries: 5
       timeout: 5s
@@ -18,9 +18,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - local_postgres_data:/var/lib/postgresql/data
+      - local_postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       retries: 5
       timeout: 5s
@@ -42,17 +42,18 @@ services:
       - ./backend:/app
       - /app/node_modules
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--spider", "http://localhost:3000/health" ]
       interval: 5s
-      timeout : 5s
-  
+      timeout: 5s
+      start_period: 25s
+
   worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    command: ["pnpm", "exec", "tsx", "src/worker.ts"]
+    command: [ "pnpm", "exec", "tsx", "src/worker.ts" ]
     depends_on:
       redis:
         condition: service_healthy
@@ -71,6 +72,6 @@ services:
       - /app/node_modules
     depends_on:
       - backend
- 
-  volumes:
-    local_postgres_data:
+
+volumes:
+  local_postgres_data:
