@@ -102,5 +102,5 @@ worker.on("failed", (job, err) => {
 worker.on("error", (err) => {
     console.error("[worker]: Worker error:", err)
 })
-
+console.log("[worker]:Worker successfully started...")
 worker.run()
