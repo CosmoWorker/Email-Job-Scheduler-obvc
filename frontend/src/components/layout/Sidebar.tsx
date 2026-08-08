@@ -41,7 +41,7 @@ function NavItem({ icon, label, count, active, onClick }: NavItemProps) {
 }
 
 export function Sidebar({ activeTab, onTabChange, onCompose, scheduledCount, sentCount }: SidebarProps) {
-  const user = { name: 'Oliver Brown', email: 'oliver.brown@domain.io' }
+  const user = { name: 'Angelina Rolfson', email: 'angelina.rolfson25@ethereal.email' }
   const initials = user.name.split(' ').map(p => p[0]).join('')
 
   return (

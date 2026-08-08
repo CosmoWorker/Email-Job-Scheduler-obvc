@@ -38,7 +38,7 @@ export function ComposePage({ onBack }: ComposePageProps) {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { senderName: 'Oliver Brown', senderEmail: 'oliver.brown@domain.io' },
+    defaultValues: { senderName: 'Angelina Rolfson', senderEmail: 'angelina.rolfson25@ethereal.email' },
   })
 
   async function onSubmit(data: FormValues) {
