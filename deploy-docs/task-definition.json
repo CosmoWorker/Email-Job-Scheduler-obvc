@@ -1,0 +1,193 @@
+{
+  "family": "myemail-fargate",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "redis",
+      "image": "public.ecr.aws/docker/library/redis:alpine",
+      "restartPolicy": {
+        "enabled": true
+      },
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "redis-cli",
+          "PING"
+        ],
+        "interval": 5,
+        "retries": 5,
+        "timeout": 5
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "ecs-myemail-logs",
+          "awslogs-region": "<aws-region>",
+          "awslogs-stream-prefix": "redis-logs"
+        }
+      }
+    },
+    {
+      "name": "db",
+      "image": "public.ecr.aws/docker/library/postgres:18-alpine",
+      "restartPolicy": {
+        "enabled": true
+      },
+      "environmentFiles": [
+        {
+          "value": "arn:aws:s3:::<bucket_name>/.env",
+          "type": "s3"
+        }
+      ],
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+        ],
+        "interval": 5,
+        "retries": 5,
+        "timeout": 5
+      },
+      "mountPoints": [
+        {
+          "sourceVolume": "dev_postgres_data",
+          "containerPath": "/var/lib/postgresql"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "ecs-myemail-logs",
+          "awslogs-region": "<aws-region>",
+          "awslogs-stream-prefix": "db-logs"
+        }
+      }
+    },
+    {
+      "name": "backend",
+      "image": "<private_repository_uri>:<version>",
+      "restartPolicy": {
+        "enabled": true
+      },
+      "environmentFiles": [
+        {
+          "value": "arn:aws:s3:::<bucket_name>/.env",
+          "type": "s3"
+        }
+      ],
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000
+        }
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--spider",
+          "http://localhost:3000/health"
+        ],
+        "interval": 5,
+        "timeout": 5,
+        "startPeriod": 25
+      },
+      "dependsOn": [
+        {
+          "containerName": "redis",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "db",
+          "condition": "HEALTHY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "ecs-myemail-logs",
+          "awslogs-region": "<aws-region>",
+          "awslogs-stream-prefix": "backend-logs"
+        }
+      }
+    },
+    {
+      "name": "worker",
+      "image": "<private_repository_uri>:<version>",
+      "restartPolicy": {
+        "enabled": true
+      },
+      "environmentFiles": [
+        {
+          "value": "arn:aws:s3:::<bucket_name>/.env",
+          "type": "s3"
+        }
+      ],
+      "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "redis",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "backend",
+          "condition": "HEALTHY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "ecs-myemail-logs",
+          "awslogs-region": "<aws-region>",
+          "awslogs-stream-prefix": "worker-logs"
+        }
+      }
+    },
+    {
+      "name": "frontend",
+      "image": "<private_repository_uri>:<version>",
+      "restartPolicy": {
+        "enabled": true
+      },
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5173,
+          "hostPort": 5173
+        }
+      ],
+      "dependsOn": [
+        {
+          "containerName": "backend",
+          "condition": "HEALTHY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "ecs-myemail-logs",
+          "awslogs-region": "<aws-region>",
+          "awslogs-stream-prefix": "frontend-logs"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "dev_postgres_data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-<id>"
+      }
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "<cpu_units>",
+  "memory": "<memory>"
+}
